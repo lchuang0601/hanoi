@@ -62,7 +62,7 @@ input,select{width:100%;min-height:42px;padding:8px 10px;border:1px solid #cfd6e
 
   <section class="card" id="setupScreen">
     <h2>開始挑戰</h2>
-    <p class="lead">共 5 關，每完成一關得 20 分，滿分 80 分。</p>
+    <p class="lead">共 5 關，每完成一關得 20 分，滿分 100 分。</p>
     <div class="form-grid">
       <div class="form-row">
         <label for="studentName">學生姓名</label>
@@ -70,7 +70,16 @@ input,select{width:100%;min-height:42px;padding:8px 10px;border:1px solid #cfd6e
       </div>
       <button class="btn primary" id="startBtn">開始第 1 關</button>
     </div>
-    <div class="notice info">操作方式：先點「來源柱」，再點「目的柱」。大圓盤不能放在小圓盤上。</div>
+    <div class="notice info">操作方式：先點「來源柱」，再點「目的柱」。大盤子不能放在小盤子上。</div>
+    <div class="notice good">
+      <b>關卡與計分：</b><br>
+      第 1 關：1 個盤子 → 20 分<br>
+      第 2 關：2 個盤子 → 20 分<br>
+      第 3 關：3 個盤子 → 20 分<br>
+      第 4 關：4 個盤子 → 20 分<br>
+      第 5 關：5 個盤子 → 20 分<br>
+      <b>滿分：100 分</b>
+    </div>
   </section>
 
   <section class="card hidden" id="gameScreen">
@@ -78,7 +87,7 @@ input,select{width:100%;min-height:42px;padding:8px 10px;border:1px solid #cfd6e
     <div id="levelSetup">
       <div class="form-grid">
         <div class="form-row">
-          <label>本關圓盤數量</label>
+          <label>本關盤子數量</label>
           <div id="fixedDiskDisplay" style="min-height:42px;padding:9px 10px;border:1px solid #cfd6e0;border-radius:10px;background:#f8fafc;font-weight:900"></div>
         </div>
         <button class="btn primary" id="startLevelBtn">開始本關</button>
@@ -91,7 +100,7 @@ input,select{width:100%;min-height:42px;padding:8px 10px;border:1px solid #cfd6e
         <div class="status"><span>學生</span><b id="studentLabel">—</b></div>
         <div class="status"><span>關卡</span><b id="levelLabel">1 / 5</b></div>
         <div class="status"><span>移動</span><b id="moveCount">0</b></div>
-        <div class="status"><span>最佳步數</span><b id="optimalCount">7</b></div>
+        <div class="status"><span>最佳步數</span><b id="optimalCount">1</b></div>
       </div>
       <div id="message" class="notice info">先點來源柱，再點目的柱。</div>
 
@@ -107,7 +116,7 @@ input,select{width:100%;min-height:42px;padding:8px 10px;border:1px solid #cfd6e
         </button>
       </div>
 
-      <div class="hint">目標：把所有圓盤從 A 柱移到 C 柱。</div>
+      <div class="hint">目標：把所有盤子從 A 柱移到 C 柱。</div>
       <div class="actions">
         <button class="btn secondary" id="restartLevelBtn">本關重來</button>
         <button class="btn primary" id="finishNowBtn">結束挑戰／查看目前成績</button>
@@ -124,7 +133,7 @@ input,select{width:100%;min-height:42px;padding:8px 10px;border:1px solid #cfd6e
       <div id="completionNote" class="notice info"></div>
 
       <table class="summary-table">
-        <thead><tr><th>關卡</th><th>圓盤</th><th>移動次數</th><th>得分</th></tr></thead>
+        <thead><tr><th>關卡</th><th>盤子</th><th>移動次數</th><th>得分</th></tr></thead>
         <tbody id="summaryBody"></tbody>
       </table>
 
@@ -139,7 +148,7 @@ input,select{width:100%;min-height:42px;padding:8px 10px;border:1px solid #cfd6e
 const TOTAL_LEVELS=5, POINTS_PER_LEVEL=20;
 const recommendedDisks=[1,2,3,4,5];
 
-let state={name:"",level:1,score:0,diskCount:3,towers:[[],[],[]],selected:null,moves:0,completed:[]};
+let state={name:"",level:1,score:0,diskCount:1,towers:[[],[],[]],selected:null,moves:0,completed:[],levelLocked:false};
 
 const setupScreen=document.getElementById("setupScreen");
 const gameScreen=document.getElementById("gameScreen");
@@ -172,7 +181,7 @@ function renderProgress(){
     else if(i===state.level)d.classList.add("current");
     progress.appendChild(d);
   }
-  scoreChip.textContent=`目前成績：${state.score} / ${TOTAL_LEVELS*POINTS_PER_LEVEL} 分`;
+  scoreChip.textContent=`目前成績：${state.score} / 100 分`;
 }
 
 function showLevelSetup(){
@@ -184,13 +193,15 @@ function showLevelSetup(){
 
   levelTitle.textContent=`第 ${state.level} 關`;
   const rec=recommendedDisks[state.level-1];
-  fixedDiskDisplay.textContent=`${rec} 個圓盤`;
-  recommendText.textContent=`第 ${state.level} 關固定使用 ${rec} 個圓盤。`;
+  fixedDiskDisplay.textContent=`${rec} 個盤子`;
+  recommendText.textContent=`第 ${state.level} 關固定使用 ${rec} 個盤子。`;
   renderProgress();
 }
 
 function startLevel(){
   state.diskCount=recommendedDisks[state.level-1];
+  state.levelLocked=false;
+  restartLevelBtn.disabled=false;
   state.towers=[[],[],[]];
   for(let size=state.diskCount;size>=1;size--)state.towers[0].push(size);
   state.selected=null;
@@ -233,11 +244,11 @@ function topDisk(index){
 }
 
 function handleTowerClick(index){
-  if(playingArea.classList.contains("hidden"))return;
+  if(playingArea.classList.contains("hidden") || state.levelLocked)return;
 
   if(state.selected===null){
     if(!state.towers[index].length){
-      setMessage("這根柱子沒有圓盤，請選另一根。","warn");
+      setMessage("這根柱子沒有盤子，請選另一根。","warn");
       return;
     }
     state.selected=index;
@@ -259,7 +270,7 @@ function handleTowerClick(index){
 
   if(targetTop!==null && moving>targetTop){
     state.selected=null;
-    setMessage("不能把大圓盤放在小圓盤上。","bad");
+    setMessage("不能把大盤子放在小盤子上。","bad");
     renderGame();
     return;
   }
@@ -275,24 +286,49 @@ function handleTowerClick(index){
 }
 
 function completeLevel(){
-  state.completed.push({level:state.level,disks:state.diskCount,moves:state.moves,score:POINTS_PER_LEVEL});
-  state.score+=POINTS_PER_LEVEL;
+  // 同一關只能計分一次
+  if(state.levelLocked || state.completed.some(r=>r.level===state.level)) return;
+
+  state.levelLocked=true;
+  restartLevelBtn.disabled=true;
+
+  state.completed.push({
+    level:state.level,
+    disks:state.diskCount,
+    moves:state.moves,
+    score:POINTS_PER_LEVEL
+  });
+
+  state.score=state.completed.length*POINTS_PER_LEVEL;
   renderProgress();
-  setMessage(`第 ${state.level} 關完成！立即加 ${POINTS_PER_LEVEL} 分，目前總分 ${state.score} 分。`,"good");
+
+  setMessage(
+    `第 ${state.level} 關完成！立即加 ${POINTS_PER_LEVEL} 分，目前總分 ${state.score} / ${TOTAL_LEVELS*POINTS_PER_LEVEL} 分。`,
+    "good"
+  );
 
   const old=playingArea.querySelector(".level-next-actions");
   if(old)old.remove();
 
   const wrap=document.createElement("div");
   wrap.className="actions level-next-actions";
+
   const btn=document.createElement("button");
   btn.className="btn good";
   btn.type="button";
-  btn.textContent=state.level===TOTAL_LEVELS?"查看總成績":`進入第 ${state.level+1} 關`;
+  btn.textContent=state.level===TOTAL_LEVELS
+    ? "查看總成績"
+    : `進入第 ${state.level+1} 關`;
+
   btn.addEventListener("click",()=>{
-    if(state.level===TOTAL_LEVELS)showFinal();
-    else{state.level++;showLevelSetup();}
+    if(state.level===TOTAL_LEVELS){
+      showFinal();
+    }else{
+      state.level++;
+      showLevelSetup();
+    }
   });
+
   wrap.appendChild(btn);
   playingArea.appendChild(wrap);
 }
@@ -328,7 +364,7 @@ function showFinal(){
 }
 
 function resetAll(){
-  state={name:"",level:1,score:0,diskCount:3,towers:[[],[],[]],selected:null,moves:0,completed:[]};
+  state={name:"",level:1,score:0,diskCount:1,towers:[[],[],[]],selected:null,moves:0,completed:[],levelLocked:false};
   studentName.value="";
   setupScreen.classList.remove("hidden");
   gameScreen.classList.add("hidden");
